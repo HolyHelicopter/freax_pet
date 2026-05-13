@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>INTERFACE</title>
+
+    <style>
+        body,
+        html {
+            background-color: transparent;
+        }
+
+        .transparent {
+            background-color: transparent;
+        }
+
+        .biggest-container {
+            width: 1920px;
+            height: 1080px;
+            border: 1px solid red;
+            position: relative;
+        }
+
+    </style>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+</head>
+
+<body>
+
+    <div class="biggest-container transparent">
+
+
+
+    </div>
+
+    <script>
+
+        window.api_key = 'AIzaSyCbI-zMjgqjt0Ml7C16VCghFj00pYKHUvo';
+        window.g_table_id = '1I-0cj040290eVzkobIpvpXlhawxDwa9Ngk6dOXXJw4M';
+        window.list = 'Питомец';
+
+        window.full_url_for_g_table = 'https://sheets.googleapis.com/v4/spreadsheets/' + window.g_table_id + '/values/' + window.list + '?key=' + api_key;
+
+        window.donation_alerts_base_url = 'https://www.donationalerts.com/api/v1';
+        window.centrifugo_url = 'wss://centrifugo.donationalerts.com/connection/websocket';
+
+        window.table_data = {};
+        window.event_queue = {'completed': [], 'waiting': []};
+
+        function get_table (call_back_func) {
+            $.get(
+                window.full_url_for_g_table,
+                function (response) {
+                    call_back_func(response);
+                }
+            );
+        }
+
+//        function check_notification_queue () {
+//
+//            var notification_to_show_id = '';
+//            var notification_to_show_text = '';
+//
+//            window.event_queue['waiting'].forEach(function(queue_item) {
+//                var queue_item_id = queue_item['id'];
+//                if ( ! notification_to_show_id && ! window.event_queue['completed'].includes(queue_item_id) ) {
+//                    notification_to_show_id = queue_item_id;
+//                    notification_to_show_text = queue_item['text'];
+//                }
+//            });
+//
+//            if (notification_to_show_id) {
+//                window.event_queue['completed'].push(notification_to_show_id);
+//                show_notification(notification_to_show_text);
+//            } else {
+//                setTimeout(check_notification_queue, 100);
+//            }
+//
+//        }
+
+//        function check_table_handle_response (response) {
+//
+//            var response_data = response.values;
+//
+//            if (response_data.length > 8) {
+//                var medal_counter = 1;
+//
+//                for ( var i = 8; i < response_data.length; i++ ) {
+//                    var medal_iter = response_data[i];
+//
+//                    var unlocked_old = window.table_data['medals']['items'][medal_counter - 1]['unlocked'];
+//                    var unlocked_new = medal_iter[0] === '1';
+//
+//                    if (unlocked_new !== unlocked_old) {
+//
+//                        window.table_data['medals']['items'][medal_counter - 1]['unlocked'] = unlocked_new;
+//
+//                        var status_to_display = '';
+//                        if (unlocked_new) {
+//                            status_to_display = 'yes'
+//                        } else {
+//                            status_to_display = 'no'
+//                        }
+//                        $('.medal-' + medal_counter).hide();
+//                        $('.medal-' + medal_counter + '-' + status_to_display).show();
+//
+//                        if (unlocked_new) {
+//                            window.event_queue['waiting'].push({
+//                                'id': medal_counter + '_' + Date.now(),
+//                                'text': window.table_data['medals']['items'][medal_counter - 1]['text']
+//                            });
+//                        }
+//
+//                    }
+//
+//                    medal_counter++;
+//                }
+//            }
+//
+//            setTimeout(check_table, 1000);
+//
+//        }
+//        function check_table () {
+//            get_table(check_table_handle_response);
+//        }
+
+//        function draw_starting_elements () {
+//
+//            var medals_are_vertical = window.table_data['medals']['direction'] === 'vertical';
+//
+//            $('.popup').css('left', window.table_data['notification']['left'] + 'px');
+//
+//            var medals_container_html = '';
+//            var medal_counter = 1;
+//            window.table_data['medals']['items'].forEach(function (medal_iter) {
+//                if (medals_are_vertical) {
+//                    medals_container_html += '<div>';
+//                }
+//
+//                $.each({'yes': medal_iter['img_url_yes'], 'no': medal_iter['img_url_no']}, function(status, img_url) {
+//                    medals_container_html += '<img';
+//                    medals_container_html += ' class="';
+//                    medals_container_html += 'medal-' + medal_counter;
+//                    medals_container_html += ' medal-' + medal_counter + '-' + status;
+//                    medals_container_html += '"';
+//                    medals_container_html += ' src="';
+//                    medals_container_html += img_url;
+//                    medals_container_html += '"';
+//                    if (status === 'yes' && !medal_iter['unlocked'] || status === 'no' && medal_iter['unlocked']) {
+//                        medals_container_html += ' style="display:none"';
+//                    } else {
+//                        medals_container_html += ' style="display:inline"';
+//                    }
+//                    medals_container_html += '>';
+//                });
+//
+//                if (medals_are_vertical) {
+//                    medals_container_html += '</div>';
+//                }
+//
+//                medal_counter++;
+//            });
+//            $('.medals-container').html(medals_container_html);
+//            $('.medals-container').css('left', window.table_data['medals']['left'] + 'px');
+//            $('.medals-container').css('top', window.table_data['medals']['top'] + 'px');
+//
+//            setTimeout(check_table, 1000);
+//
+//        }
+//        function load_starting_data (response) {
+//
+//            var response_data = response.values;
+//
+//            window.table_data['notification'] = {
+//                'top': 0,
+//                'left': 0
+//            };
+//
+//            window.table_data['notification']['left'] = parseInt(response_data[4][1]);
+//            window.table_data['notification']['top'] = parseInt(response_data[4][3]);
+//
+//            window.table_data['medals'] = {
+//                'top': 0,
+//                'left': 0,
+//                'direction': 'horizontal',
+//                'items': []
+//            };
+//
+//            window.table_data['medals']['left'] = parseInt(response_data[1][1]);
+//            window.table_data['medals']['top'] = parseInt(response_data[1][3]);
+//            var response_data_medals_direction = response_data[1][5];
+//            if (response_data_medals_direction === '1') {
+//                window.table_data['medals']['direction'] = 'horizontal';
+//            }
+//            if (response_data_medals_direction === '2') {
+//                window.table_data['medals']['direction'] = 'vertical';
+//            }
+//
+//            if (response_data.length > 8) {
+//                for ( var i = 8; i < response_data.length; i++ ) {
+//                    var medal_iter = response_data[i];
+//
+//                    window.table_data['medals']['items'].push(
+//                        {
+//                            'unlocked': medal_iter[0] === '1',
+//                            'text': medal_iter[1],
+//                            'img_url_no': medal_iter[2],
+//                            'img_url_yes': medal_iter[3]
+//                        }
+//                    );
+//                }
+//            }
+//
+//            draw_starting_elements();
+//
+//        }
+
+//        check_notification_queue();
+//        get_table(load_starting_data);
+
+    </script>
+
+</body>
+
+</html>
+
