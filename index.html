@@ -44,6 +44,8 @@
 
         window.full_url_for_g_table = 'https://sheets.googleapis.com/v4/spreadsheets/' + window.g_table_id + '/values/' + window.list + '?key=' + api_key;
 
+        window.donation_alerts_auth_url = 'https://www.donationalerts.com/oauth/authorize?client_id=18949&redirect_uri=https://freax-pet.onrender.com/&response_type=token&scope=oauth-donation-index%20oauth-donation-subscribe%20oauth-goal-subscribe';
+        window.donation_alerts_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxODk0OSIsImp0aSI6ImNhZDFjZGY2ZTczODc0NTJiZGQ5MDEwM2M2YWVjNjlkMDM1NDAzNjRkNTM0ZmJmY2M3MmI5N2EwZGY3NDUyOTY2OTM2ZTU5MWZlNjkwNzQxIiwiaWF0IjoxNzc4NjQyNzY1LjIyNzQsIm5iZiI6MTc3ODY0Mjc2NS4yMjc0LCJleHAiOjE4MTAxNzg3NjUuMjA0Nywic3ViIjoiMTQ0MjExNjAiLCJzY29wZXMiOlsib2F1dGgtZG9uYXRpb24taW5kZXgiLCJvYXV0aC1kb25hdGlvbi1zdWJzY3JpYmUiLCJvYXV0aC1nb2FsLXN1YnNjcmliZSJdfQ.ruYJqeAZN4_Xv24HqKNNwZvAuKD8GaWbMY4vfxfb12LX7KvzPULv40OKxaAoC8uwIiKJZ8oK9Zlc1cA8WaYAb0K2v3S9j62fAnlXXTGDEV7vrnajedMpoMxRAMAN2jxWuTlbuRZDe8xpwCLb-Rxw9Rd2XSuoWhZDSUZS-zFYeMW1YbpT-SR819C-Go1ZxsCmFiV6Y6T-YXz25EfUrrOFWIZYanf0OD--HRzbvtSKB1IrwigHVjPEYIpYD5eZFe8LZITXDXMgSFqSZjgLFk1ixRaheFLU0D7pCm5kTPQDm_CilhK2T5ER5p2Yd29LTJ4sv_Yni3u-equpIH45e2erP0cXF_4hmJaohnK3VVTHQukhm3XxieaULoWBfgtIzvYc-NyBLbowwjkMrtAKG9l2ojeyjNLCDBK_TV4GAsl0DB1TDP-ZKrX0F0niQBCwK8vVjLgmBqZK8lB154xa1Tf2uXdBNV6rJhayGnpgxdA5T2CplNLMlr0zpyyTPFFrs95fSxGHUe2fL4E4S-Uvbgn_9QHta1Pn_FIhxrzGViW7AKH_1cD45biMD2x6T_cyKffdD3C1998CAyryin7nvulxogm7wWxl3GWPU2Fvyu7jiSW9Q59U5WSmw1EIJ5CeZu2rvpsmdqECe11itBHbsKtscJf-A-aZJVoqVJPHJBnUNOQ';
         window.donation_alerts_base_url = 'https://www.donationalerts.com/api/v1';
         window.centrifugo_url = 'wss://centrifugo.donationalerts.com/connection/websocket';
 
@@ -58,6 +60,31 @@
                 }
             );
         }
+
+        function da_request (method, type, call_back_func) {
+            $.ajax({
+                url: window.donation_alerts_base_url + method,
+                type: type,
+                dataType: 'json',
+                headers: {
+                    'Authorization': 'Bearer ' + window.donation_alerts_token
+                },
+                contentType: 'application/json; charset=utf-8',
+                success: function (result) {
+                   call_back_func(result);
+                },
+                error: function (error) {
+                }
+            });
+        }
+
+        function da_handle_response (da_response) {
+            console.log('This is the da_response!');
+            console.log(da_response);
+            window.da_response = da_response;
+        }
+
+        da_request('/alerts/donations', 'GET', da_handle_response);
 
 //        function check_notification_queue () {
 //
