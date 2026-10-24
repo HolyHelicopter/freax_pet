@@ -197,7 +197,11 @@
         }
 
         function get_da_goal_percent () {
-            return Math.floor(window.da_goal_data['current'] / window.da_goal_data['goal'] * 100);
+            var da_goal_percent = Math.floor(window.da_goal_data['current'] / window.da_goal_data['goal'] * 100);
+            if (da_goal_percent > 100) {
+                da_goal_percent = 100
+            }
+            return da_goal_percent;
         }
 
         function update_sheets_goal () {
