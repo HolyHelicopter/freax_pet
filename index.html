@@ -62,7 +62,7 @@
 
         window.range_current = 'Питомец!B8:B8';
         window.range_goal = 'Питомец!D8:D8';
-        window.statuses_starting_index = 14;
+        window.statuses_starting_index = 15;
 
         window.table_data = {};
         window.da_goal_data = {};
@@ -204,6 +204,14 @@
             return da_goal_percent;
         }
 
+        function stop_animation_donation_when_full () {
+            $('.status-video').hide();
+
+            $('#status-' + window.current_animation_status_id).show();
+
+            update_sheets_current();
+        }
+
         function update_sheets_goal () {
             if (window.da_goal_data['goal_changed']) {
                 window.da_goal_data['goal_changed'] = false;
@@ -230,6 +238,12 @@
             var goal_changed = window.da_goal_data['goal'] !== goal_amount;
 
             if (raised_changed || goal_changed) {
+                var is_this_a_donation_when_full = false;
+                var previous_goal_percent = get_da_goal_percent();
+                if (previous_goal_percent === 100 && raised_changed && raised_amount > window.da_goal_data['current']) {
+                    is_this_a_donation_when_full = true;
+                }
+
                 window.da_goal_data['current_changed'] = raised_changed;
                 window.da_goal_data['goal_changed'] = goal_changed;
 
@@ -255,9 +269,17 @@
 
                     $('#status-morphing').show();
                     $('#status-morphing')[0].play();
-                }
 
-                update_sheets_current();
+                    update_sheets_current();
+                } else if (is_this_a_donation_when_full) {
+                    $('.status-video').hide();
+
+                    $('#status-donation_when_full').show();
+
+                    setTimeout(stop_animation_donation_when_full, window.animations['donation_when_full']['duration']);
+                } else {
+                    update_sheets_current();
+                }
             } else {
                 setTimeout(check_event_queue, 100);
             }
@@ -299,14 +321,20 @@
                 'status_number': 'morphing',
                 'img_url': window.animations['morphing']['img_url']
             });
+            statuses_to_draw.push({
+                'status_number': 'donation_when_full',
+                'img_url': window.animations['donation_when_full']['img_url']
+            });
 
             var pet_container_html = '';
             var is_status_active = false;
             var is_status_morphing = false;
+            var is_status_donation_when_full = false;
             statuses_to_draw.forEach(function (status_iter) {
                 is_status_morphing = status_iter['status_number'] === 'morphing';
+                is_status_donation_when_full = status_iter['status_number'] === 'donation_when_full';
 
-                if (is_status_morphing) {
+                if (is_status_morphing || is_status_donation_when_full) {
                     is_status_active = false;
                 } else {
                     is_status_active = status_iter['end'] >= current_goal_percent && current_goal_percent >= status_iter['start'];
@@ -359,6 +387,9 @@
 
             window.animations['morphing'] = {};
             window.animations['morphing']['img_url'] = response_data[10][1];
+            window.animations['donation_when_full'] = {};
+            window.animations['donation_when_full']['img_url'] = response_data[11][1];
+            window.animations['donation_when_full']['duration'] = parseInt(response_data[11][3]);
             window.animations['statuses'] = [];
             if (response_data.length > window.statuses_starting_index) {
                 var status_counter = 1;
