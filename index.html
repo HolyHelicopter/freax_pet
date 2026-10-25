@@ -204,6 +204,14 @@
             return da_goal_percent;
         }
 
+        function end_of_morphing_process () {
+            $('.status-video:not(#status-morphing)').hide();
+
+            $('#status-' + window.current_animation_status_id).show();
+
+            update_sheets_current();
+        }
+
         function stop_animation_donation_when_full () {
             $('.status-video').hide();
 
@@ -263,14 +271,10 @@
                 });
 
                 if (status_changed) {
-                    $('.status-video').hide();
-
-                    $('#status-' + window.current_animation_status_id).show();
-
                     $('#status-morphing').show();
                     $('#status-morphing')[0].play();
 
-                    update_sheets_current();
+                    setTimeout(end_of_morphing_process, window.animations['morphing']['delay_duration']);
                 } else if (is_this_a_donation_when_full) {
                     $('.status-video').hide();
 
@@ -387,6 +391,7 @@
 
             window.animations['morphing'] = {};
             window.animations['morphing']['img_url'] = response_data[10][1];
+            window.animations['morphing']['delay_duration'] = parseInt(response_data[10][3]);
             window.animations['donation_when_full'] = {};
             window.animations['donation_when_full']['img_url'] = response_data[11][1];
             window.animations['donation_when_full']['duration'] = parseInt(response_data[11][3]);
