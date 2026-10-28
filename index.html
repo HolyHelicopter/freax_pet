@@ -55,10 +55,11 @@
         window.donation_alerts_base_url = 'https://www.donationalerts.com/api/v1';
         window.centrifugo_url = 'wss://centrifugo.donationalerts.com/connection/websocket';
 
-        window.g_apps_url = 'https://script.google.com/macros/s/AKfycbwmerYSgRtkznddaNMp39DOXCm3TGHlsUyy3hV814MehVH0FE697fIw-szXoDep8rON/exec';
+        window.g_apps_url = 'https://script.google.com/macros/s/AKfycbyIKBoy1qSx7csZhi8txrkgUmjMEWQ8H_gZWQeptFpD2rcVlrEnBW8H5b6g_rfHSPn1/exec';
 
         window.donation_alerts_token = '';
         window.da_user_id = '';
+        window.centrifugo_channel_token = '';
 
         window.range_current = 'Питомец!B8:B8';
         window.range_goal = 'Питомец!D8:D8';
@@ -69,6 +70,10 @@
         window.current_animation_status_id = '';
         window.animations = {};
         window.event_queue = {'waiting': [], 'completed': [], 'last_completed_event_id': 0};
+
+        window.centrifugo_ping_active = false;
+        window.time_stamp_centrifugo_ping = 0;
+        window.time_stamp_centrifugo_launch = 0;
 
         function get_table (call_back_func) {
             $.get(
@@ -82,21 +87,14 @@
         function write_to_sheet (params, call_back_func) {
             params['request_type'] = 'write_to_sheet';
 
-            var url = '';
-            $.each(params, function (key, val) {
-                if (url) {
-                    url += '&' + key + '=' + val;
-                } else {
-                    url += '?' + key + '=' + val;
-                }
-            });
-            url = window.g_apps_url + url;
+            var url = window.g_apps_url;
 
             fetch(
                 url,
                 {
                     redirect: "follow",
-                    method: 'GET',
+                    method: "POST",
+                    body: JSON.stringify(params),
                     headers: {
                         'Content-Type': "text/plain;charset=utf-8"
                     }
@@ -113,26 +111,19 @@
             params['token'] = window.donation_alerts_token;
             params['url'] = window.donation_alerts_base_url;
             if (params['params']) {
-                params['params'] = encodeURIComponent(JSON.stringify(params['params']));
+                params['params'] = JSON.stringify(params['params']);
             } else {
                 params['params'] = '';
             }
 
-            var url = '';
-            $.each(params, function (key, val) {
-                if (url) {
-                    url += '&' + key + '=' + val;
-                } else {
-                    url += '?' + key + '=' + val;
-                }
-            });
-            url = window.g_apps_url + url;
+            var url = window.g_apps_url;
 
             fetch(
                 url,
                 {
                     redirect: "follow",
-                    method: 'GET',
+                    method: "POST",
+                    body: JSON.stringify(params),
                     headers: {
                         'Content-Type': "text/plain;charset=utf-8"
                     }
@@ -152,10 +143,12 @@
 //        da_request({'method': '/alerts/donations', 'type': 'get'}, da_handle_response);
 
         function start_centrifugo_3 (da_response) {
+            window.centrifugo_channel_token = da_response['channels'][0]['token'];
+
             window.centrifugo_socket.send(
                 JSON.stringify({
                     'params': {
-                        'token': da_response['channels'][0]['token'],
+                        'token': window.centrifugo_channel_token,
                         'channel': '$goals:goal_' + window.da_user_id
                     },
                     'method': 1,
@@ -168,7 +161,10 @@
             window.da_user_id = da_response['data']['id'];
 
             window.centrifugo_socket = new WebSocket(window.centrifugo_url);
+
             window.centrifugo_socket.onmessage = function(event) {
+                window.time_stamp_centrifugo_ping = Date.now();
+
                 var event_data = JSON.parse(event.data);
 
                 if (event_data.id === 1) {
@@ -181,6 +177,7 @@
                     window.event_queue['waiting'].push(event_data);
                 }
             };
+
             window.centrifugo_socket.onopen = function() {
                 window.centrifugo_socket.send(
                     JSON.stringify({
@@ -194,6 +191,47 @@
         }
         function start_centrifugo () {
             da_request({'method': '/user/oauth', 'type': 'get'}, start_centrifugo_2);
+        }
+
+        function web_socket_checkup () {
+            var time_stamp_now = Date.now();
+
+            var three_minutes_since_launch = (time_stamp_now - window.time_stamp_centrifugo_launch) > (1000 * 60 * 3);
+
+            if ( three_minutes_since_launch ) {
+                if ( ! window.centrifugo_ping_active ) {
+                    window.centrifugo_ping_active = true;
+                    window.time_stamp_centrifugo_ping = Date.now();
+                }
+            }
+
+            if (window.centrifugo_ping_active) {
+                var one_minute_since_ping = (time_stamp_now - window.time_stamp_centrifugo_ping) > (1000 * 60);
+
+                if (one_minute_since_ping) {
+                    window.centrifugo_ping_active = false;
+                    window.time_stamp_centrifugo_launch = Date.now();
+
+                    window.centrifugo_socket.close();
+
+                    start_centrifugo();
+                } else {
+                    if (window.centrifugo_channel_token) {
+                        window.centrifugo_socket.send(
+                            JSON.stringify({
+                                'params': {
+                                    'token': window.centrifugo_channel_token,
+                                    'channel': '$goals:goal_' + window.da_user_id
+                                },
+                                'method': 1,
+                                'id': 2
+                            })
+                        );
+                    }
+                }
+            }
+
+            setTimeout(web_socket_checkup, 1000 * 20);
         }
 
         function get_da_goal_percent () {
@@ -415,8 +453,11 @@
                 }
             }
 
+            window.time_stamp_centrifugo_launch = Date.now();
+
             draw_starting_elements();
             start_centrifugo();
+            setTimeout(web_socket_checkup, 1000 * 60 * 3);
         }
         get_table(load_starting_data);
 
