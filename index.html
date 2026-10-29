@@ -63,7 +63,7 @@
 
         window.range_current = 'Питомец!B8:B8';
         window.range_goal = 'Питомец!D8:D8';
-        window.statuses_starting_index = 15;
+        window.statuses_starting_index = 14;
 
         window.table_data = {};
         window.da_goal_data = {};
@@ -249,15 +249,13 @@
 
             update_sheets_current();
         }
-
-        function stop_animation_donation_when_full () {
+        function stop_animation () {
             $('.status-video').hide();
 
             $('#status-' + window.current_animation_status_id).show();
 
             update_sheets_current();
         }
-
         function update_sheets_goal () {
             if (window.da_goal_data['goal_changed']) {
                 window.da_goal_data['goal_changed'] = false;
@@ -284,10 +282,9 @@
             var goal_changed = window.da_goal_data['goal'] !== goal_amount;
 
             if (raised_changed || goal_changed) {
-                var is_this_a_donation_when_full = false;
-                var previous_goal_percent = get_da_goal_percent();
-                if (previous_goal_percent === 100 && raised_changed && raised_amount > window.da_goal_data['current']) {
-                    is_this_a_donation_when_full = true;
+                var is_this_a_new_donation = false;
+                if (raised_changed && raised_amount > window.da_goal_data['current']) {
+                    is_this_a_new_donation = true;
                 }
 
                 window.da_goal_data['current_changed'] = raised_changed;
@@ -313,12 +310,16 @@
                     $('#status-morphing')[0].play();
 
                     setTimeout(end_of_morphing_process, window.animations['morphing']['delay_duration']);
-                } else if (is_this_a_donation_when_full) {
+                } else if (is_this_a_new_donation) {
                     $('.status-video').hide();
 
-                    $('#status-donation_when_full').show();
+                    $('#status-donate-' + window.current_animation_status_id).show();
 
-                    setTimeout(stop_animation_donation_when_full, window.animations['donation_when_full']['duration']);
+                    if ( ! window.animations['donate-' + window.current_animation_status_id]['is_looped'] ) {
+                        $('#status-donate-' + window.current_animation_status_id)[0].play();
+                    }
+
+                    setTimeout(stop_animation, window.animations['donate-' + window.current_animation_status_id]['duration']);
                 } else {
                     update_sheets_current();
                 }
@@ -359,24 +360,29 @@
             window.animations['statuses'].forEach(function (status_iter) {
                 statuses_to_draw.push(status_iter);
             });
-            statuses_to_draw.push({
-                'status_number': 'morphing',
-                'img_url': window.animations['morphing']['img_url']
-            });
-            statuses_to_draw.push({
-                'status_number': 'donation_when_full',
-                'img_url': window.animations['donation_when_full']['img_url']
+            $.each(window.animations, function(animation_key, animation_data) {
+                var is_looped = animation_data['is_looped'];
+                if (animation_key === 'morphing') {
+                    is_looped = false;
+                }
+
+                statuses_to_draw.push({
+                    'is_extra_animation': true,
+                    'status_number': animation_key,
+                    'img_url': animation_data['img_url'],
+                    'is_looped': is_looped
+                });
             });
 
             var pet_container_html = '';
             var is_status_active = false;
-            var is_status_morphing = false;
-            var is_status_donation_when_full = false;
             statuses_to_draw.forEach(function (status_iter) {
-                is_status_morphing = status_iter['status_number'] === 'morphing';
-                is_status_donation_when_full = status_iter['status_number'] === 'donation_when_full';
+                var is_looped = true;
+                if (status_iter['is_extra_animation']) {
+                    is_looped = status_iter['is_looped'];
+                }
 
-                if (is_status_morphing || is_status_donation_when_full) {
+                if (status_iter['is_extra_animation']) {
                     is_status_active = false;
                 } else {
                     is_status_active = status_iter['end'] >= current_goal_percent && current_goal_percent >= status_iter['start'];
@@ -387,7 +393,7 @@
                 }
 
                 pet_container_html += '<video class="status-video" muted playsinline';
-                if ( ! is_status_morphing ) {
+                if (is_looped) {
                     pet_container_html += ' autoplay loop';
                 }
                 pet_container_html += ' id="';
@@ -430,9 +436,7 @@
             window.animations['morphing'] = {};
             window.animations['morphing']['img_url'] = response_data[10][1];
             window.animations['morphing']['delay_duration'] = parseInt(response_data[10][3]);
-            window.animations['donation_when_full'] = {};
-            window.animations['donation_when_full']['img_url'] = response_data[11][1];
-            window.animations['donation_when_full']['duration'] = parseInt(response_data[11][3]);
+
             window.animations['statuses'] = [];
             if (response_data.length > window.statuses_starting_index) {
                 var status_counter = 1;
@@ -448,6 +452,11 @@
                             'img_url': status_iter[2]
                         }
                     );
+
+                    window.animations['donate-' + status_counter] = {};
+                    window.animations['donate-' + status_counter]['img_url'] = status_iter[3];
+                    window.animations['donate-' + status_counter]['duration'] = parseInt(status_iter[4]);
+                    window.animations['donate-' + status_counter]['is_looped'] = status_iter[5] === 'да';
 
                     status_counter += 1;
                 }
